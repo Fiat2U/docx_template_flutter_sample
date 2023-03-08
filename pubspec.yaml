@@ -37,12 +37,8 @@ dependencies:
   cupertino_icons: ^1.0.2
   path_provider: ^2.0.13
   permission_handler: ^10.2.0
-  docx_template: ^0.3.3
+  docx_template: ^0.3.4
   fluttertoast: ^8.2.1
-
-# Override the archive package to use version 3.3.2
-dependency_overrides:
-  archive: 3.3.2
 
 dev_dependencies:
   flutter_test:
