@@ -5,17 +5,32 @@ import 'package:docx_template/docx_template.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ImageProvider()),
+        ChangeNotifierProvider(create: (_) => PhotoDocProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Docx Template Demo',
-      home: MyHomePage(),
+    return MaterialApp(
+      title: 'Docx Template Sample',
+      home: const MyHomePage(),
+      theme: ThemeData(
+        useMaterial3: true,
+      ),
     );
   }
 }
@@ -33,11 +48,32 @@ class MyHomePage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Center(
-            child: ElevatedButton(
+            child: FilledButton.tonal(
               onPressed: _generateDocument,
               child: const Text('Generate Document (Official Example)'),
             ),
           ),
+          Center(
+            child: FilledButton.tonal(
+              onPressed: () => _generatePhotoDocument(context),
+              child: const Text('Take a Photo and Generate a Document'),
+            ),
+          ),
+          Consumer<PhotoDocProvider>(
+            builder: (context, provider, _) {
+              if (provider.filepath == null) {
+                return const Center(child: Text('No document generated'));
+              } else {
+                return Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Center(
+                    child: Text(provider.filepath!,
+                        maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ),
+                );
+              }
+            },
+          )
         ],
       ),
     );
@@ -153,5 +189,101 @@ class MyHomePage extends StatelessWidget {
       Fluttertoast.showToast(
           msg: 'Document $filepath generated!', toastLength: Toast.LENGTH_LONG);
     }
+  }
+
+  Future<void> _generateAnotherDocument() async {
+    final status = await Permission.storage.request();
+    if (!status.isGranted) {
+      print('Permission denied');
+      return;
+    }
+
+    final data = await rootBundle.load('assets/simple-tmpl.docx');
+    final bytes = data.buffer.asUint8List();
+    final docx = await DocxTemplate.fromBytes(bytes);
+
+    // Load test image for inserting in docx
+    // Exception has occurred.
+    // PathNotFoundException (PathNotFoundException: Cannot open file, path = 'assets/test.png' (OS Error: No such file or directory, errno = 2))
+    final image = await File('assets/test.png').readAsBytes();
+    // final testFileData = await rootBundle.load('assets/test.png');
+    // final testFileContent = testFileData.buffer.asUint8List();
+
+    Content c = Content();
+    c
+      ..add(TextContent("docname", "Another Document"))
+      ..add(ImageContent('img', image));
+
+    final d = await docx.generate(c);
+    const filepath = '/storage/emulated/0/Download/generated_308.docx';
+    final of = File(filepath);
+    if (d != null) {
+      await of.writeAsBytes(d);
+      Fluttertoast.showToast(
+          msg: 'Document $filepath generated!', toastLength: Toast.LENGTH_LONG);
+    }
+  }
+
+  Future<void> _generatePhotoDocument(context) async {
+    final status = await Permission.storage.request();
+    if (!status.isGranted) {
+      print('Permission denied');
+      return;
+    }
+
+    final imagePicker = ImagePicker();
+    final pickedFile = await imagePicker.pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      final imageFile = File(pickedFile.path);
+      Provider.of<ImageProvider>(context, listen: false).setImage(imageFile);
+      print('Picture taken at: ${imageFile.path}');
+
+      final data = await rootBundle.load('assets/simple-tmpl.docx');
+      final bytes = data.buffer.asUint8List();
+      final docx = await DocxTemplate.fromBytes(bytes);
+
+      final image = await imageFile.readAsBytes();
+
+      Content c = Content();
+      c
+        ..add(TextContent("docname", "Photo Document"))
+        ..add(ImageContent('img', image));
+
+      final d = await docx.generate(c);
+
+      const filepath = '/storage/emulated/0/Download/generated_309.docx';
+      final of = File(filepath);
+      if (d != null) {
+        await of.writeAsBytes(d);
+
+        Provider.of<PhotoDocProvider>(context, listen: false).set(filepath);
+
+        Fluttertoast.showToast(
+            msg: 'Document $filepath generated!',
+            toastLength: Toast.LENGTH_LONG);
+      }
+    }
+  }
+}
+
+class ImageProvider with ChangeNotifier {
+  File? _imageFile;
+
+  File? get imageFile => _imageFile;
+
+  void setImage(File file) {
+    _imageFile = file;
+    notifyListeners();
+  }
+}
+
+class PhotoDocProvider with ChangeNotifier {
+  String _filepath = '';
+
+  String? get filepath => _filepath;
+
+  void set(String filepath) {
+    _filepath = filepath;
+    notifyListeners();
   }
 }

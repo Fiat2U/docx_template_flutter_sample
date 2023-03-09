@@ -8,6 +8,12 @@ A sample Flutter app that demonstrate how to use the `docx_template` package to 
 | ![](./assets/template-word-1.png) | ![](./assets/generated-word-1.png) |
 | ![](./assets/template-word-2.png) | ![](./assets/generated-word-2.png) |
 
+## Take a Photo and Generate a Document
+
+| Simple Template      | Generated Word Document            |
+| --------------------------------- | ---------------------------------- |
+| ![](./assets/simple-template.png) | ![](./assets/photo-document.png) |
+
 ## Note
 
 ### Android

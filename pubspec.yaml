@@ -39,6 +39,9 @@ dependencies:
   permission_handler: ^10.2.0
   docx_template: ^0.3.4
   fluttertoast: ^8.2.1
+  path: ^1.8.2
+  image_picker: ^0.8.6+4
+  provider: ^6.0.5
 
 dev_dependencies:
   flutter_test:
